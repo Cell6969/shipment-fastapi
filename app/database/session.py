@@ -3,10 +3,10 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.orm import sessionmaker
 from sqlmodel import SQLModel
-from app.config import settings
+from app.config import db_settings
 
 engine = create_async_engine(
-    url=settings.get_connection_string, 
+    url=db_settings.get_connection_string, 
     echo=True
 )
 

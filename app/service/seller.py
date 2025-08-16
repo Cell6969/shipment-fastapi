@@ -1,15 +1,21 @@
+from datetime import datetime, timedelta
+from fastapi import HTTPException, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
+import jwt
 
+from app.config import security_settings as settings
 from app.api.schemas.seller import SellerCreate
 from app.database.models import Seller
 
 hash_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+
 class SellerService:
     def __init__(self, session: AsyncSession):
         self.session = session
-    
+
     async def create(self, seller_create: SellerCreate) -> Seller:
         seller = Seller(
             **seller_create.model_dump(exclude=["password"]),
@@ -21,3 +27,22 @@ class SellerService:
         await self.session.refresh(seller)
 
         return seller
+
+    async def token(self, email: str, password: str) -> str:
+        result = await self.session.execute(select(Seller).where(Seller.email == email))
+        seller = result.scalar()
+        if seller is None or not hash_context.verify(password, seller.password):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="invalid credentials",
+            )
+        token = jwt.encode(
+            payload={
+                "user": {"name": seller.name, "email": seller.email},
+                "exp": datetime.now() + timedelta(days=1),
+            },
+            algorithm=settings.JWT_ALGORITHM,
+            key=settings.JWT_SECRET,
+        )
+
+        return token
