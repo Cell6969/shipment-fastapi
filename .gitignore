@@ -1,0 +1,36 @@
+# Virtual environment
+.venv/
+venv/
+env/
+
+# Byte-code files
+*.pyc
+__pycache__/
+
+# Editor/IDE specific files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Database files
+*.sqlite3
+*.db
+*.db-journal
+
+# Logs
+*.log
+
+# Dependency management
+pip-wheel-metadata/
+.Python
+.eggs/
+*.egg-info/
+dist/
+build/
+
+# Uploaded files (if applicable)
+/uploads/
+
+# Environment variables
+.env
