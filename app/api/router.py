@@ -1,31 +1,8 @@
 from fastapi import APIRouter
+from .routers import shipment, seller
 
-from app.api.dependencies import ServiceDepends
-from app.api.schemas.schemas import ShipmentCreate, ShipmentResponse, ShipmentUpdate, ShipmentUpdatePartial
+master_router = APIRouter()
 
-router = APIRouter(prefix="/shipment", tags=["shipment"])
-
-@router.get("/", response_model=list[ShipmentResponse])
-async def get_shipment(service:ServiceDepends):
-    return await service.list()
-
-@router.post("/", response_model=ShipmentResponse)
-async def submit_shipment(body:ShipmentCreate, service:ServiceDepends):
-    return await service.add(body)
-
-@router.get("/{id}", response_model=ShipmentResponse)
-async def get_shipment_by_id(id:int, service:ServiceDepends):
-    return await service.get(id)
-
-@router.put("/{id}", response_model=ShipmentResponse)
-async def update_shipment(id:int, body:ShipmentUpdate, service:ServiceDepends):
-    return await service.update(id, body)
-
-@router.patch("/{id}", response_model=ShipmentResponse)
-async def patch_shipment(id:int, body:ShipmentUpdatePartial, service:ServiceDepends):
-    return await service.update_partial(id, body)
-
-@router.delete("/{id}")
-async def delete_shipment(id:int, service:ServiceDepends) -> dict[str, str]:
-    await service.delete(id)
-    return {"message": f"shipment with id {id} deleted"}
+# register all routes
+master_router.include_router(shipment.router)
+master_router.include_router(seller.router)
