@@ -1,3 +1,4 @@
+from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.api.schemas.schemas import ShipmentCreate, ShipmentUpdate, ShipmentUpdatePartial
@@ -12,7 +13,7 @@ class ShipmentService:
     def __init__(self, session:AsyncSession):
         self.session = session
 
-    async def list(self) -> list[Shipment]:
+    async def list(self) -> Sequence[Shipment]:
         results = await self.session.execute(select(Shipment))
         return results.scalars().all()
 

@@ -8,6 +8,7 @@ import jwt
 from app.config import security_settings as settings
 from app.api.schemas.seller import SellerCreate
 from app.database.models import Seller
+from app.utils import generate_access_token
 
 hash_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -18,7 +19,7 @@ class SellerService:
 
     async def create(self, seller_create: SellerCreate) -> Seller:
         seller = Seller(
-            **seller_create.model_dump(exclude=["password"]),
+            **seller_create.model_dump(exclude={"password"}),
             # hash password
             password=hash_context.hash(seller_create.password)
         )
@@ -29,20 +30,22 @@ class SellerService:
         return seller
 
     async def token(self, email: str, password: str) -> str:
-        result = await self.session.execute(select(Seller).where(Seller.email == email))
+        result = await self.session.execute(
+            select(Seller).where(Seller.email == email)   # type:ignore
+        )
         seller = result.scalar()
         if seller is None or not hash_context.verify(password, seller.password):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="invalid credentials",
             )
-        token = jwt.encode(
-            payload={
-                "user": {"name": seller.name, "email": seller.email},
-                "exp": datetime.now() + timedelta(days=1),
-            },
-            algorithm=settings.JWT_ALGORITHM,
-            key=settings.JWT_SECRET,
+        token = generate_access_token(
+            data={
+                "user": {
+                    "name": seller.name,
+                    "id": seller.id,
+                },
+            }
         )
 
         return token

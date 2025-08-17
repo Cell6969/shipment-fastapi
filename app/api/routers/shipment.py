@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.dependencies import ShipmentServiceDepends
+from app.api.dependencies import SellerGuard, ShipmentServiceDepends
 from app.api.schemas.schemas import ShipmentCreate, ShipmentResponse, ShipmentUpdate, ShipmentUpdatePartial
 
 router = APIRouter(prefix="/shipment", tags=["shipment"])
@@ -10,7 +10,7 @@ async def get_shipment(service:ShipmentServiceDepends):
     return await service.list()
 
 @router.post("/", response_model=ShipmentResponse)
-async def submit_shipment(body:ShipmentCreate, service:ShipmentServiceDepends):
+async def submit_shipment(body:ShipmentCreate, service:ShipmentServiceDepends, seller_guard: SellerGuard):
     return await service.add(body)
 
 @router.get("/{id}", response_model=ShipmentResponse)

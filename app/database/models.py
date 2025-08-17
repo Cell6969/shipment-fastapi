@@ -13,7 +13,7 @@ class ShipmentStatus(str, Enum):
 
 
 class Shipment(SQLModel, table=True):
-    __tablename__ = "shipment"
+    __tablename__ = "shipment" #type:ignore
 
     # auto generated id by None and Primary Key
     id: int = Field(default=None, primary_key=True)
@@ -25,7 +25,7 @@ class Shipment(SQLModel, table=True):
 
 
 class Seller(SQLModel, table=True):
-    __tablename__ = "seller"
+    __tablename__ = "seller" #type:ignore
 
     id: int = Field(default=None, primary_key=True)
     name: str
