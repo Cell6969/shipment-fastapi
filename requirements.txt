@@ -3,3 +3,4 @@ sqlmodel
 asyncpg
 passlib[bcrypt]
 pyjwt
+redis[hiredis]

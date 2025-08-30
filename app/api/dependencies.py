@@ -1,5 +1,6 @@
 from app.core.security import oauth2_scheme
 from app.database.models import Seller
+from app.database.redis import is_jti_blacklisted
 from app.service.seller import SellerService
 from app.service.shipment import ShipmentService
 from app.database.session import get_session
@@ -23,9 +24,9 @@ def get_seller_service(session: SessionDepends):
 
 
 # access token dependency
-def get_access_token(token: Annotated[str, Depends(oauth2_scheme)]):
+async def get_access_token(token: Annotated[str, Depends(oauth2_scheme)]):
     data = decode_access_token(token)
-    if data is None:
+    if data is None or await is_jti_blacklisted(data["jti"]):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
         )

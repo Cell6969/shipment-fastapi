@@ -4,12 +4,16 @@ _base_config = SettingsConfigDict(
     env_file="./.env", env_ignore_empty=True, extra="ignore"
 )
 
+
 class DatabaseSettings(BaseSettings):
     POSTGRES_HOST: str
     POSTGRES_PORT: int
     POSTGRES_DB: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str
+
+    REDIS_HOST: str
+    REDIS_PORT: int
 
     model_config = _base_config
 
