@@ -21,5 +21,5 @@ app.include_router(master_router)
 def get_scalar_docs():
     return get_scalar_api_reference(
         openapi_url=cast("str", app.openapi_url),
-        title="Scalara API"
+        title="Scalar API"
     )

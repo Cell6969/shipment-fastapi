@@ -27,7 +27,7 @@ def get_access_token(token: Annotated[str, Depends(oauth2_scheme)]):
     data = decode_access_token(token)
     if data is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
         )
     return data
 
@@ -40,7 +40,7 @@ async def get_current_user(
     seller = await session.get(Seller, token_data["user"]["id"])
     if seller is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid User"
         )
     return seller
 

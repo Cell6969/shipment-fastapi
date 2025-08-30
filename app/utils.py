@@ -1,5 +1,6 @@
-from datetime import timedelta, datetime
-from jwt import encode, decode, PyJWTError
+from datetime import timedelta, datetime, timezone
+from fastapi import HTTPException, status
+from jwt import ExpiredSignatureError, encode, decode, PyJWTError
 from app.config import security_settings as settings
 
 
@@ -7,7 +8,7 @@ def generate_access_token(data: dict, expiry: timedelta = timedelta(days=1)) -> 
     return encode(
         payload={
             **data,
-            "exp": datetime.now() + expiry,
+            "exp": datetime.now(timezone.utc) + expiry,
         },
         algorithm=settings.JWT_ALGORITHM,
         key=settings.JWT_SECRET,

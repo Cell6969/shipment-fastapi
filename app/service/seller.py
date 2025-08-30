@@ -39,6 +39,7 @@ class SellerService:
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="invalid credentials",
             )
+
         token = generate_access_token(
             data={
                 "user": {

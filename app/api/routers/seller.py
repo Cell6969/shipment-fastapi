@@ -22,24 +22,25 @@ async def register_seller(
     return ApiResponse.success("seller created successfully", seller)
 
 
-@router.post("/token", response_model=ApiResponse[str])
+@router.post("/token")
 async def login_seller(
     request_form: Annotated[OAuth2PasswordRequestForm, Depends()],
     service: SellerServiceDepends,
-):
+) -> dict[str, str]:
     token = await service.token(request_form.username, request_form.password)
-    return ApiResponse.success("login successful", token)
+    return {"access_token": token, "type": "jwt"}
+
 
 @router.get("/dashboard")
-async def get_dashboard(token: Annotated[str, Depends(oauth2_scheme)], session: SessionDepends):
-    data =  decode_access_token(token)
+async def get_dashboard(
+    token: Annotated[str, Depends(oauth2_scheme)], session: SessionDepends
+):
+    data = decode_access_token(token)
     if data is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Token"
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token"
         )
 
     seller = await session.get(Seller, data["user"]["id"])
 
-    
     return ApiResponse.success("dashboard", seller)
