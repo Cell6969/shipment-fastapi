@@ -35,7 +35,7 @@ class ShipmentService:
 
         return new_shipment
 
-    async def get(self, id: int) -> Shipment:
+    async def get(self, id: str) -> Shipment:
         shipment = await self.session.get(Shipment, id)
         if shipment is None:
             raise HTTPException(
@@ -43,7 +43,7 @@ class ShipmentService:
             )
         return shipment
 
-    async def update(self, id: int, shipment_update: ShipmentUpdate) -> Shipment:
+    async def update(self, id: str, shipment_update: ShipmentUpdate) -> Shipment:
         shipment = await self.get(id)
         data = shipment_update.model_dump()
         if "estimated_delivery" in data:
@@ -56,7 +56,7 @@ class ShipmentService:
         return shipment
 
     async def update_partial(
-        self, id: int, shipment_update_partial: ShipmentUpdatePartial
+        self, id: str, shipment_update_partial: ShipmentUpdatePartial
     ) -> Shipment:
         shipment = await self.get(id)
         update = shipment_update_partial.model_dump(exclude_none=True)
@@ -73,7 +73,7 @@ class ShipmentService:
 
         return shipment
 
-    async def delete(self, id: int) -> None:
+    async def delete(self, id: str) -> None:
         shipment = await self.get(id)
         await self.session.delete(shipment)
         await self.session.commit()

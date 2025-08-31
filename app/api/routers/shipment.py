@@ -24,25 +24,25 @@ async def submit_shipment(
 
 
 @router.get("/{id}", response_model=ShipmentResponse)
-async def get_shipment_by_id(id: int, service: ShipmentServiceDepends):
+async def get_shipment_by_id(id: str, service: ShipmentServiceDepends):
     return await service.get(id)
 
 
 @router.put("/{id}", response_model=ShipmentResponse)
 async def update_shipment(
-    id: int, body: ShipmentUpdate, service: ShipmentServiceDepends
+    id: str, body: ShipmentUpdate, service: ShipmentServiceDepends
 ):
     return await service.update(id, body)
 
 
 @router.patch("/{id}", response_model=ShipmentResponse)
 async def patch_shipment(
-    id: int, body: ShipmentUpdatePartial, service: ShipmentServiceDepends
+    id: str, body: ShipmentUpdatePartial, service: ShipmentServiceDepends
 ):
     return await service.update_partial(id, body)
 
 
 @router.delete("/{id}")
-async def delete_shipment(id: int, service: ShipmentServiceDepends) -> dict[str, str]:
+async def delete_shipment(id: str, service: ShipmentServiceDepends) -> dict[str, str]:
     await service.delete(id)
     return {"message": f"shipment with id {id} deleted"}
