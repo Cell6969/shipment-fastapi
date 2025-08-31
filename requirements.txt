@@ -4,3 +4,5 @@ asyncpg
 passlib[bcrypt]
 pyjwt
 redis[hiredis]
+scalar_fastapi
+alembic

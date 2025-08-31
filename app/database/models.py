@@ -47,6 +47,7 @@ class Seller(SQLModel, table=True):
     name: str
     email: EmailStr
     password: str
+    address:str | None = None
 
     shipments: list[Shipment] = Relationship(
         back_populates="seller", sa_relationship_kwargs={"lazy": "selectin"}
