@@ -20,10 +20,10 @@ async def create_db_tables():
 # create async session
 async def get_session():
     async_session = sessionmaker(
-        bind=engine,
+        bind=engine, # type:ignore
         class_=AsyncSession,
         expire_on_commit=False
     )
 
-    async with async_session() as session:
+    async with async_session() as session: # type:ignore
         yield session

@@ -8,7 +8,7 @@ from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.utils import decode_access_token
-
+from uuid import UUID
 
 SessionDepends = Annotated[AsyncSession, Depends(get_session)]
 
@@ -38,7 +38,7 @@ async def get_current_user(
     token_data: Annotated[dict, Depends(get_access_token)],
     session: SessionDepends,
 ) -> Seller:
-    seller = await session.get(Seller, token_data["user"]["id"])
+    seller = await session.get(Seller, UUID(token_data["user"]["id"]))
     if seller is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid User"

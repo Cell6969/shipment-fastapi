@@ -1,6 +1,8 @@
 from datetime import datetime
+from uuid import UUID
 from pydantic import BaseModel, Field
 
+from app.api.schemas.seller import SellerResponse
 from app.database.models import ShipmentStatus
 
 class BaseShipment(BaseModel):
@@ -20,6 +22,7 @@ class ShipmentUpdatePartial(BaseModel):
     estimated_delivery: datetime | None = None
 
 class ShipmentResponse(BaseShipment):
-    id:int
+    id:UUID
     status: ShipmentStatus
     estimated_delivery: datetime
+    seller: SellerResponse

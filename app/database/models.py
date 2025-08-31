@@ -1,8 +1,9 @@
 from datetime import datetime
-from typing import ClassVar
 from pydantic import EmailStr
-from sqlmodel import Field, SQLModel
+from sqlmodel import Column, Field, Relationship, SQLModel, col
 from enum import Enum
+from uuid import uuid4, UUID
+from sqlalchemy.dialects import postgresql
 
 
 class ShipmentStatus(str, Enum):
@@ -13,21 +14,40 @@ class ShipmentStatus(str, Enum):
 
 
 class Shipment(SQLModel, table=True):
-    __tablename__ = "shipment" #type:ignore
+    __tablename__ = "shipment"  # type:ignore
 
-    # auto generated id by None and Primary Key
-    id: int = Field(default=None, primary_key=True)
+    # auto generated id by uuid and Primary Key
+    id: UUID = Field(
+        sa_column=Column(
+            postgresql.UUID,
+            default=uuid4,
+            primary_key=True
+        )
+    )
     content: str
     weight: float = Field(le=25)
     destination: int
     status: ShipmentStatus
     estimated_delivery: datetime
 
+    seller_id: UUID = Field(foreign_key="seller.id")
+    seller: "Seller" = Relationship(back_populates="shipments", sa_relationship_kwargs={"lazy": "selectin"})
+
 
 class Seller(SQLModel, table=True):
-    __tablename__ = "seller" #type:ignore
+    __tablename__ = "seller"  # type:ignore
 
-    id: int = Field(default=None, primary_key=True)
+    id: UUID = Field(
+        sa_column=Column(
+            postgresql.UUID,
+            default=uuid4,
+            primary_key=True
+        )
+    )
     name: str
     email: EmailStr
     password: str
+
+    shipments: list[Shipment] = Relationship(
+        back_populates="seller", sa_relationship_kwargs={"lazy": "selectin"}
+    )

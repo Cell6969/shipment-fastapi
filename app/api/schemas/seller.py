@@ -1,3 +1,4 @@
+from uuid import UUID
 from pydantic import BaseModel, EmailStr
 
 
@@ -7,6 +8,6 @@ class SellerCreate(BaseModel):
     password: str
 
 class SellerResponse(BaseModel):
-    id: int
+    id: UUID
     name: str
     email: EmailStr

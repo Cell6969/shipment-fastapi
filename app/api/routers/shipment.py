@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 
 from app.api.dependencies import SellerGuard, ShipmentServiceDepends
-from app.api.schemas.schemas import (
+from app.api.schemas.shipment import (
     ShipmentCreate,
     ShipmentResponse,
     ShipmentUpdate,
@@ -20,7 +20,7 @@ async def get_shipment(_: SellerGuard, service: ShipmentServiceDepends):
 async def submit_shipment(
     body: ShipmentCreate, service: ShipmentServiceDepends, seller_guard: SellerGuard
 ):
-    return await service.add(body)
+    return await service.add(body, seller_guard)
 
 
 @router.get("/{id}", response_model=ShipmentResponse)
