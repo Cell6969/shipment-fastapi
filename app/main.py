@@ -8,7 +8,7 @@ from app.api.router import master_router
 
 @asynccontextmanager
 async def lifespan_handler(app:FastAPI):
-    await create_db_tables()
+    # await create_db_tables() # non-active it because it can run schema db
     yield
 
 app = FastAPI(lifespan=lifespan_handler)
