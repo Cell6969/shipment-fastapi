@@ -1,5 +1,5 @@
-from app.core.security import oauth2_scheme
-from app.database.models import Seller
+from app.core.security import oauth2_scheme_seller, oauth2_scheme_partner
+from app.database.models import DeliveryPartner, Seller
 from app.database.redis import is_jti_blacklisted
 from app.service.seller import SellerService
 from app.service.shipment import ShipmentService
@@ -9,6 +9,7 @@ from fastapi import Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.utils import decode_access_token
 from uuid import UUID
+from app.service.delivery_partner import DeliverPartnerService
 
 SessionDepends = Annotated[AsyncSession, Depends(get_session)]
 
@@ -17,14 +18,17 @@ SessionDepends = Annotated[AsyncSession, Depends(get_session)]
 def get_shipment_service(session: SessionDepends):
     return ShipmentService(session=session)
 
-
 # seller service
 def get_seller_service(session: SessionDepends):
     return SellerService(session=session)
 
+# delivery partner service
+def get_delivery_partner_service(session:SessionDepends):
+    return DeliverPartnerService(session=session)
+
 
 # access token dependency
-async def get_access_token(token: Annotated[str, Depends(oauth2_scheme)]):
+async def _get_access_token(token: str):
     data = decode_access_token(token)
     if data is None or await is_jti_blacklisted(data["jti"]):
         raise HTTPException(
@@ -33,9 +37,21 @@ async def get_access_token(token: Annotated[str, Depends(oauth2_scheme)]):
     return data
 
 
-# get current user
-async def get_current_user(
-    token_data: Annotated[dict, Depends(get_access_token)],
+# get access token seller
+async def get_seller_access_token(token: Annotated[str, Depends(oauth2_scheme_seller)]):
+    return await _get_access_token(token)
+
+
+# get access token partner
+async def get_partner_access_token(
+    token: Annotated[str, Depends(oauth2_scheme_partner)]
+):
+    return await _get_access_token(token)
+
+
+# get current seller
+async def get_current_seller(
+    token_data: Annotated[dict, Depends(get_seller_access_token)],
     session: SessionDepends,
 ) -> Seller:
     seller = await session.get(Seller, UUID(token_data["user"]["id"]))
@@ -46,6 +62,23 @@ async def get_current_user(
     return seller
 
 
-SellerGuard = Annotated[Seller, Depends(get_current_user)]
+async def get_current_partner(
+    token_data: Annotated[dict, Depends(get_partner_access_token)],
+    session: SessionDepends,
+) -> DeliveryPartner:
+    partner = await session.get(DeliveryPartner, UUID(token_data["user"]["id"]))
+    if partner is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid User"
+        )
+    return partner
+
+
+# Guard
+SellerGuard = Annotated[Seller, Depends(get_current_seller)]
+PartnerGuard = Annotated[DeliveryPartner, Depends(get_current_partner)] 
+
+# Service
 ShipmentServiceDepends = Annotated[ShipmentService, Depends(get_shipment_service)]
 SellerServiceDepends = Annotated[SellerService, Depends(get_seller_service)]
+PartnerServiceDepends = Annotated[DeliverPartnerService, Depends(get_delivery_partner_service)]

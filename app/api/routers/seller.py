@@ -2,12 +2,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.api.dependencies import SellerServiceDepends, SessionDepends, get_access_token
+from app.api.dependencies import SellerServiceDepends, SessionDepends, get_seller_access_token
 from app.api.schemas.seller import SellerCreate, SellerResponse
 from app.database.models import Seller
 from app.database.redis import add_jti_to_blacklist
 from app.helper.api import ApiResponse
-from app.core.security import oauth2_scheme
+from app.core.security import oauth2_scheme_seller
 from app.utils import decode_access_token
 
 
@@ -36,7 +36,7 @@ async def login_seller(
 # dashboard
 @router.get("/dashboard")
 async def get_dashboard(
-    token: Annotated[str, Depends(oauth2_scheme)], session: SessionDepends
+    token: Annotated[str, Depends(oauth2_scheme_seller)], session: SessionDepends
 ):
     data = decode_access_token(token)
     if data is None:
@@ -50,7 +50,7 @@ async def get_dashboard(
 
 # logout user
 @router.get("/logout")
-async def logout_seller(token_data:Annotated[dict, Depends(get_access_token)]):
+async def logout_seller(token_data:Annotated[dict, Depends(get_seller_access_token)]):
     await add_jti_to_blacklist(token_data["jti"])
     return {
         "detail": "logout successfully"

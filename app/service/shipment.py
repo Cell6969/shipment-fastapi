@@ -1,4 +1,5 @@
 from typing import Sequence
+from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.api.schemas.shipment import (
@@ -12,11 +13,12 @@ from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 
 from app.helper.datetimeconversion import to_naive_utc
+from app.service.base import BaseService
 
 
-class ShipmentService:
+class ShipmentService(BaseService[Shipment]):
     def __init__(self, session: AsyncSession):
-        self.session = session
+        super().__init__(Shipment, session)
 
     async def list(self) -> Sequence[Shipment]:
         results = await self.session.execute(select(Shipment))
@@ -29,37 +31,34 @@ class ShipmentService:
             estimated_delivery=datetime.utcnow() + timedelta(days=3),
             seller_id=seller.id,
         )
-        self.session.add(new_shipment)
-        await self.session.commit()
-        await self.session.refresh(new_shipment)
+        shipment = await self._add(new_shipment)
+        return shipment
 
-        return new_shipment
-
-    async def get(self, id: str) -> Shipment:
-        shipment = await self.session.get(Shipment, id)
+    async def get(self, id: UUID) -> Shipment:
+        shipment = await self._get(id)
         if shipment is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="shipment is not found"
             )
         return shipment
 
-    async def update(self, id: str, shipment_update: ShipmentUpdate) -> Shipment:
+    async def update(self, id: UUID, shipment_update: ShipmentUpdate) -> Shipment:
         shipment = await self.get(id)
         data = shipment_update.model_dump()
         if "estimated_delivery" in data:
             data["estimated_delivery"] = to_naive_utc(data["estimated_delivery"])
         shipment.sqlmodel_update(data)
-        self.session.add(shipment)
-        await self.session.commit()
-        await self.session.refresh(shipment)
+        
+        updated_shipment = await self._update(shipment)
 
-        return shipment
+        return updated_shipment
 
     async def update_partial(
-        self, id: str, shipment_update_partial: ShipmentUpdatePartial
+        self, id: UUID, shipment_update_partial: ShipmentUpdatePartial
     ) -> Shipment:
         shipment = await self.get(id)
         update = shipment_update_partial.model_dump(exclude_none=True)
+
         if "estimated_delivery" in update:
             update["estimated_delivery"] = to_naive_utc(update["estimated_delivery"])
         if not update:
@@ -67,13 +66,10 @@ class ShipmentService:
                 status_code=status.HTTP_400_BAD_REQUEST, detail="no data provided"
             )
         shipment.sqlmodel_update(update)
-        self.session.add(shipment)
-        await self.session.commit()
-        await self.session.refresh(shipment)
+        updated_shipment = await self._update(shipment)
 
-        return shipment
+        return updated_shipment
 
-    async def delete(self, id: str) -> None:
+    async def delete(self, id: UUID) -> None:
         shipment = await self.get(id)
-        await self.session.delete(shipment)
-        await self.session.commit()
+        await self._delete(shipment)
