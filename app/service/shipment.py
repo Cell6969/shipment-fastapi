@@ -14,11 +14,13 @@ from fastapi import HTTPException, status
 
 from app.helper.datetimeconversion import to_naive_utc
 from app.service.base import BaseService
+from app.service.delivery_partner import DeliverPartnerService
 
 
 class ShipmentService(BaseService[Shipment]):
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, partner_service:DeliverPartnerService):
         super().__init__(Shipment, session)
+        self.partner_service = partner_service
 
     async def list(self) -> Sequence[Shipment]:
         results = await self.session.execute(select(Shipment))
@@ -28,11 +30,12 @@ class ShipmentService(BaseService[Shipment]):
         new_shipment = Shipment(
             **shipment_create.model_dump(),
             status=ShipmentStatus.placed,
-            estimated_delivery=datetime.utcnow() + timedelta(days=3),
+            estimated_delivery=datetime.now() + timedelta(days=3),
             seller_id=seller.id,
         )
-        shipment = await self._add(new_shipment)
-        return shipment
+        partner = await self.partner_service.assign_shipment(new_shipment)
+        new_shipment.delivery_partner_id = partner.id
+        return await self._add(new_shipment)
 
     async def get(self, id: UUID) -> Shipment:
         shipment = await self._get(id)

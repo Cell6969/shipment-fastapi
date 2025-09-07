@@ -16,14 +16,18 @@ SessionDepends = Annotated[AsyncSession, Depends(get_session)]
 
 # shipment service
 def get_shipment_service(session: SessionDepends):
-    return ShipmentService(session=session)
+    return ShipmentService(
+        session=session, partner_service=DeliverPartnerService(session=session)
+    )
+
 
 # seller service
 def get_seller_service(session: SessionDepends):
     return SellerService(session=session)
 
+
 # delivery partner service
-def get_delivery_partner_service(session:SessionDepends):
+def get_delivery_partner_service(session: SessionDepends):
     return DeliverPartnerService(session=session)
 
 
@@ -44,7 +48,7 @@ async def get_seller_access_token(token: Annotated[str, Depends(oauth2_scheme_se
 
 # get access token partner
 async def get_partner_access_token(
-    token: Annotated[str, Depends(oauth2_scheme_partner)]
+    token: Annotated[str, Depends(oauth2_scheme_partner)],
 ):
     return await _get_access_token(token)
 
@@ -76,9 +80,11 @@ async def get_current_partner(
 
 # Guard
 SellerGuard = Annotated[Seller, Depends(get_current_seller)]
-PartnerGuard = Annotated[DeliveryPartner, Depends(get_current_partner)] 
+PartnerGuard = Annotated[DeliveryPartner, Depends(get_current_partner)]
 
 # Service
 ShipmentServiceDepends = Annotated[ShipmentService, Depends(get_shipment_service)]
 SellerServiceDepends = Annotated[SellerService, Depends(get_seller_service)]
-PartnerServiceDepends = Annotated[DeliverPartnerService, Depends(get_delivery_partner_service)]
+PartnerServiceDepends = Annotated[
+    DeliverPartnerService, Depends(get_delivery_partner_service)
+]

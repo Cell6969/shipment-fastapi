@@ -18,8 +18,8 @@ class ShipmentUpdate(BaseModel):
     estimated_delivery: datetime
 
 class ShipmentUpdatePartial(BaseModel):
-    status: ShipmentStatus | None = None
-    estimated_delivery: datetime | None = None
+    status: ShipmentStatus | None = Field(default=None)
+    estimated_delivery: datetime | None = Field(default=None)
 
 class ShipmentResponse(BaseShipment):
     id:UUID

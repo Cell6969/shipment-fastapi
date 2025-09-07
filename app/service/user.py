@@ -20,15 +20,13 @@ class UserService(Generic[U],BaseService[U]):
         self.session = session
 
     async def _add_user(self, data: dict) -> U:
-        user = self.model(
-            **data,
-            password=hash_context.hash(data["password"]),
-        )
+        data["password"] = hash_context.hash(data["password"])
+        user = self.model(**data)
         return await self._add(user)
 
     async def _get_by_email(self, email: str) -> U | None:
         return await self.session.scalar(
-            select(self.model).where(self.model.email == EmailStr(email))
+            select(self.model).where(self.model.email == email) #type:ignore
         )
 
     async def _generate_token(self, email: str, password: str) -> str:

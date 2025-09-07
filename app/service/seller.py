@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
+from pydantic import EmailStr
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from passlib.context import CryptContext
@@ -18,7 +19,7 @@ class SellerService(UserService[Seller]):
         super().__init__(Seller, session)
 
     async def create(self, seller_create: SellerCreate) -> Seller:
-        return await self._add_user(**seller_create.model_dump())
+        return await self._add_user(seller_create.model_dump())
 
-    async def token(self, email: str, password: str) -> str:
+    async def token(self, email: EmailStr, password: str) -> str:
         return await self._generate_token(email, password)
