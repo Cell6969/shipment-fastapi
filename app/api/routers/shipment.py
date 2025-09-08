@@ -2,6 +2,7 @@ from uuid import UUID
 from fastapi import APIRouter
 
 from app.api.dependencies import (
+    PartnerGuard,
     PartnerServiceDepends,
     SellerGuard,
     ShipmentServiceDepends,
@@ -33,11 +34,11 @@ async def get_shipment_by_id(id: str, service: ShipmentServiceDepends):
     return await service.get(UUID(id))
 
 
-@router.put("/{id}", response_model=ShipmentResponse)
-async def update_shipment(
-    id: str, body: ShipmentUpdate, service: ShipmentServiceDepends
-):
-    return await service.update(UUID(id), body)
+# @router.put("/{id}", response_model=ShipmentResponse)
+# async def update_shipment(
+#     id: str, body: ShipmentUpdate, service: ShipmentServiceDepends
+# ):
+#     return await service.update(UUID(id), body)
 
 
 @router.patch("/{id}", response_model=ShipmentResponse)
@@ -45,9 +46,9 @@ async def patch_shipment(
     id: str,
     body: ShipmentUpdatePartial,
     service: ShipmentServiceDepends,
-    partner: PartnerServiceDepends,
+    partner: PartnerGuard,
 ):
-    return await service.update_partial(UUID(id), body)
+    return await service.update_partial(UUID(id), body, partner)
 
 
 @router.delete("/{id}")

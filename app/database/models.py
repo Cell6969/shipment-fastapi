@@ -46,6 +46,10 @@ class Shipment(SQLModel, table=True):
         back_populates="shipments", sa_relationship_kwargs={"lazy": "selectin"}
     )
 
+    @property
+    def status(self):
+        return self.timeline[-1].status if len(self.timeline) > 0 else None
+
 
 class ShipmentEvent(SQLModel, table=True):
     __tablename__ = "shipment_event"  # type:ignore

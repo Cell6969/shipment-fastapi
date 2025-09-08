@@ -7,7 +7,7 @@ from app.api.schemas.shipment import (
     ShipmentUpdate,
     ShipmentUpdatePartial,
 )
-from app.database.models import Seller, Shipment
+from app.database.models import DeliveryPartner, Seller, Shipment
 from app.database.models import ShipmentStatus
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
@@ -15,12 +15,19 @@ from fastapi import HTTPException, status
 from app.helper.datetimeconversion import to_naive_utc
 from app.service.base import BaseService
 from app.service.delivery_partner import DeliverPartnerService
+from app.service.shipment_event import ShipmentEventService
 
 
 class ShipmentService(BaseService[Shipment]):
-    def __init__(self, session: AsyncSession, partner_service:DeliverPartnerService):
+    def __init__(
+        self,
+        session: AsyncSession,
+        partner_service: DeliverPartnerService,
+        event_service: ShipmentEventService,
+    ):
         super().__init__(Shipment, session)
         self.partner_service = partner_service
+        self.event_service = event_service
 
     async def list(self) -> Sequence[Shipment]:
         results = await self.session.execute(select(Shipment))
@@ -33,9 +40,23 @@ class ShipmentService(BaseService[Shipment]):
             estimated_delivery=datetime.now() + timedelta(days=3),
             seller_id=seller.id,
         )
+        # Assign delivery partner
         partner = await self.partner_service.assign_shipment(new_shipment)
         new_shipment.delivery_partner_id = partner.id
-        return await self._add(new_shipment)
+
+        # save shipment
+        shipment = await self._add(new_shipment)
+
+        # Add event service for shipment
+        event = await self.event_service.add(
+            shipment=shipment,
+            location=seller.zip_code,
+            status=ShipmentStatus.placed,
+            description=f"assigned to a delivery partner {partner.name}",
+        )
+        shipment.timeline.append(event)
+
+        return shipment
 
     async def get(self, id: UUID) -> Shipment:
         shipment = await self._get(id)
@@ -51,24 +72,43 @@ class ShipmentService(BaseService[Shipment]):
         if "estimated_delivery" in data:
             data["estimated_delivery"] = to_naive_utc(data["estimated_delivery"])
         shipment.sqlmodel_update(data)
-        
+
         updated_shipment = await self._update(shipment)
 
         return updated_shipment
 
     async def update_partial(
-        self, id: UUID, shipment_update_partial: ShipmentUpdatePartial
+        self,
+        id: UUID,
+        shipment_update_partial: ShipmentUpdatePartial,
+        partner: DeliveryPartner,
     ) -> Shipment:
         shipment = await self.get(id)
         update = shipment_update_partial.model_dump(exclude_none=True)
 
-        if "estimated_delivery" in update:
-            update["estimated_delivery"] = to_naive_utc(update["estimated_delivery"])
         if not update:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST, detail="no data provided"
             )
+
+        if shipment.delivery_partner_id != partner.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="You are not authorized to update this shipment",
+            )
+
+        if shipment_update_partial.estimated_delivery:
+            update["estimated_delivery"] = shipment_update_partial.estimated_delivery
+
         shipment.sqlmodel_update(update)
+
+        # add event
+        if len(update) > 1 or not shipment_update_partial.estimated_delivery:
+            await self.event_service.add(
+                shipment=shipment,
+                **update,
+            )
+
         updated_shipment = await self._update(shipment)
 
         return updated_shipment
