@@ -13,6 +13,7 @@ class ShipmentStatus(str, Enum):
     in_transit = "in_transit"
     out_for_delivery = "out_for_delivery"
     delivered = "delivered"
+    cancelled = "cancelled"
 
 
 class Shipment(SQLModel, table=True):
@@ -122,6 +123,7 @@ class DeliveryPartner(User, table=True):
             shipment
             for shipment in self.shipments
             if shipment.status != ShipmentStatus.delivered
+            or shipment.status != ShipmentStatus.cancelled
         ]
 
     @property

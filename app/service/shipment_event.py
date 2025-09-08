@@ -45,5 +45,7 @@ class ShipmentEventService(BaseService[ShipmentEvent]):
                 return "shipment out for delivery"
             case ShipmentStatus.delivered:
                 return "successfully delivered"
+            case ShipmentStatus.cancelled:
+                return "cancelled by seller"
             case _:  # shipment in transit
                 return f"scanned at location {location}"

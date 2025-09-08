@@ -29,6 +29,16 @@ async def submit_shipment(
     return await service.add(body, seller_guard)
 
 
+# cancel 
+@router.get("/cancel", response_model=ShipmentResponse)
+async def cancel_shipment(
+    id: str,
+    service: ShipmentServiceDepends,
+    seller: SellerGuard,
+):
+    return await service.cancel(UUID(id), seller)
+
+
 @router.get("/{id}", response_model=ShipmentResponse)
 async def get_shipment_by_id(id: str, service: ShipmentServiceDepends):
     return await service.get(UUID(id))
@@ -50,8 +60,11 @@ async def patch_shipment(
 ):
     return await service.update_partial(UUID(id), body, partner)
 
-
 @router.delete("/{id}")
-async def delete_shipment(id: str, service: ShipmentServiceDepends) -> dict[str, str]:
+async def delete_shipment(
+    id: str,
+    service: ShipmentServiceDepends,
+    seller: SellerGuard,
+) -> dict[str, str]:
     await service.delete(UUID(id))
     return {"message": f"shipment with id {id} deleted"}
