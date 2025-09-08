@@ -29,6 +29,20 @@ class SecuritySettings(BaseSettings):
     model_config = _base_config
 
 
+class NotificationSettings(BaseSettings):
+    MAIL_USERNAME: str
+    MAIL_PASSWORD: str
+    MAIL_FROM: str
+    MAIL_PORT: int
+    MAIL_SERVER: str
+    MAIL_STARTTLS: bool = True
+    MAIL_SSL_TLS: bool = False
+    USE_CREDENTIALS: bool = True
+    VALIDATE_CERTS: bool = True
+
+    model_config = _base_config
+
+
 db_settings = DatabaseSettings()
 security_settings = SecuritySettings()
-print(db_settings.get_connection_string)
+notification_settings = NotificationSettings()

@@ -1,17 +1,22 @@
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
-
-from rich import print, panel
-
-@asynccontextmanager
-async def lifespan_handler(app:FastAPI):
-    print(panel.Panel("Server started....", style="bold green"))
-    yield
-    print(panel.Panel("Server stopped....", style="bold red"))
+import asyncio
+from fastapi_mail import ConnectionConfig, FastMail, MessageSchema, MessageType
+from app.config import notification_settings
 
 
-app = FastAPI(lifespan=lifespan_handler)
+fastmail = FastMail(ConnectionConfig(**notification_settings.model_dump()))
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+
+async def send_message():
+    await fastmail.send_message(
+        message=MessageSchema(
+            recipients=["test@gmail.com"],
+            subject="Test",
+            body="Test",
+            subtype=MessageType.plain,
+        )
+    )
+
+    print("Message sent")
+
+
+asyncio.run(send_message())
