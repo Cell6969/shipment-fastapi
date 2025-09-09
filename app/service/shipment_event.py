@@ -2,10 +2,13 @@ from app.service.base import BaseService
 from app.database.models import Shipment, ShipmentEvent, ShipmentStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.service.notification import NotificationService
+
 
 class ShipmentEventService(BaseService[ShipmentEvent]):
     def __init__(self, session: AsyncSession):
         super().__init__(ShipmentEvent, session)
+        self.notification_service = NotificationService()
 
     async def add(
         self,
@@ -30,6 +33,9 @@ class ShipmentEventService(BaseService[ShipmentEvent]):
             shipment_id=shipment.id,
         )
 
+        # send notification
+        await self._notify(shipment=shipment, status=status)
+
         return await self._add(new_event)
 
     async def get_latest_event(self, shipment: Shipment) -> ShipmentEvent:
@@ -49,3 +55,22 @@ class ShipmentEventService(BaseService[ShipmentEvent]):
                 return "cancelled by seller"
             case _:  # shipment in transit
                 return f"scanned at location {location}"
+
+    async def _notify(self, shipment: Shipment, status: ShipmentStatus):
+        match (status):
+            case ShipmentStatus.placed:
+                await self.notification_service.send_email(
+                    recipients=[shipment.client_contact_email],
+                    subject="Your order is shipped",
+                    body=f"your order with {shipment.seller.name}"
+                    f"is picked by {shipment.delivery_partner.name}"
+                    " and is on its way to your location",
+                )
+            case ShipmentStatus.out_for_delivery:
+                await self.notification_service.send_email(
+                    recipients=[shipment.client_contact_email],
+                    subject="Your order is arriving",
+                    body="Our delivery executive is on their way "
+                    "to deliver your order. Please ensure you are available"
+                    " to receive your order.",
+                )
