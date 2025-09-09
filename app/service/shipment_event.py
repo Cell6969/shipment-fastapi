@@ -1,3 +1,4 @@
+from fastapi import BackgroundTasks
 from app.service.base import BaseService
 from app.database.models import Shipment, ShipmentEvent, ShipmentStatus
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -6,9 +7,9 @@ from app.service.notification import NotificationService
 
 
 class ShipmentEventService(BaseService[ShipmentEvent]):
-    def __init__(self, session: AsyncSession):
+    def __init__(self, session: AsyncSession, tasks: BackgroundTasks):
         super().__init__(ShipmentEvent, session)
-        self.notification_service = NotificationService()
+        self.notification_service = NotificationService(tasks)
 
     async def add(
         self,
