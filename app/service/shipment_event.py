@@ -70,6 +70,7 @@ class ShipmentEventService(BaseService[ShipmentEvent]):
                 subject="Your Order is Shipped 🚛"
                 context["seller"] = shipment.seller.name
                 context["partner"] = shipment.delivery_partner.name
+                context["id"] = shipment.id
                 template_name="mail_placed.html"
 
             case ShipmentStatus.out_for_delivery:

@@ -1,25 +1,47 @@
 from uuid import UUID
-from fastapi import APIRouter
+from fastapi import APIRouter, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 from app.api.dependencies import (
     PartnerGuard,
-    PartnerServiceDepends,
     SellerGuard,
     ShipmentServiceDepends,
 )
 from app.api.schemas.shipment import (
     ShipmentCreate,
     ShipmentResponse,
-    ShipmentUpdate,
     ShipmentUpdatePartial,
 )
+from app.utils import TEMPLATE_DIR
 
 router = APIRouter(prefix="/shipment", tags=["shipment"])
 
+templates = Jinja2Templates(directory=TEMPLATE_DIR)
+
 
 @router.get("/", response_model=list[ShipmentResponse])
-async def get_shipment(seller_guard: SellerGuard, service: ShipmentServiceDepends):
+async def get_shipment(_: SellerGuard, service: ShipmentServiceDepends):
     return await service.list()
+
+
+@router.get("/tracking")
+async def get_shipment_tracking(
+    request: Request, id: str, service: ShipmentServiceDepends
+):
+    shipment = await service.get(UUID(id))
+
+    context = shipment.model_dump()
+    context["partner"] = shipment.delivery_partner.name
+    context["status"] = shipment.status
+    context["timeline"] = shipment.timeline
+    context["timeline"].reverse()
+
+    return templates.TemplateResponse(
+        request=request,
+        name="track.html",
+        context=context,
+    )
 
 
 @router.post("/", response_model=ShipmentResponse)
@@ -29,7 +51,7 @@ async def submit_shipment(
     return await service.add(body, seller_guard)
 
 
-# cancel 
+# cancel
 @router.get("/cancel", response_model=ShipmentResponse)
 async def cancel_shipment(
     id: str,
@@ -59,6 +81,7 @@ async def patch_shipment(
     partner: PartnerGuard,
 ):
     return await service.update_partial(UUID(id), body, partner)
+
 
 @router.delete("/{id}")
 async def delete_shipment(
