@@ -20,11 +20,11 @@ async def send_message():
         )
     )
 
-    client.messages.create(
-        body="Test",
-        from_=notification_settings.TWILIO_PHONE_NUMBER,
-        to="+6281292674823",
-    )
+    # client.messages.create(
+    #     body="Test",
+    #     from_=notification_settings.TWILIO_PHONE_NUMBER,
+    #     to="+16673275027",
+    # )
 
     print("Message sent")
 

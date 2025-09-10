@@ -12,6 +12,7 @@ from app.database.models import ShipmentStatus
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
 
+from app.database.redis import get_shipment_verification_code
 from app.helper.datetimeconversion import to_naive_utc
 from app.service.base import BaseService
 from app.service.delivery_partner import DeliverPartnerService
@@ -84,17 +85,29 @@ class ShipmentService(BaseService[Shipment]):
         partner: DeliveryPartner,
     ) -> Shipment:
         shipment = await self.get(id)
-        update = shipment_update_partial.model_dump(exclude_none=True)
-
-        if not update:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="no data provided"
-            )
 
         if shipment.delivery_partner_id != partner.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You are not authorized to update this shipment",
+            )
+
+        if shipment_update_partial.status == ShipmentStatus.delivered:
+            code = await get_shipment_verification_code(shipment.id)
+            if code != shipment_update_partial.verification_code:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="verification code is incorrect",
+                )
+
+        update = shipment_update_partial.model_dump(
+            exclude_none=True,
+            exclude={"verification_code"},
+        )
+
+        if not update:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="no data provided"
             )
 
         if shipment_update_partial.estimated_delivery:
@@ -117,7 +130,7 @@ class ShipmentService(BaseService[Shipment]):
         shipment = await self.get(id)
         await self._delete(shipment)
 
-    async def cancel(self, id:UUID, seller: Seller) -> Shipment:
+    async def cancel(self, id: UUID, seller: Seller) -> Shipment:
         # get shipment
         shipment = await self.get(id)
 
