@@ -37,6 +37,16 @@ async def login_delivery_partner(
     return {"access_token": token, "type": "jwt"}
 
 
+### verify partner
+@router.get("/verify")
+async def verify_partner(
+    token: str,
+    service: PartnerServiceDepends,
+) -> dict[str, str]:
+    await service.verify_email(token)
+    return {"detail": "email verified successfully"}
+
+
 ### update delivery partner
 @router.post("/", response_model=ApiResponse[DeliveryPartnerResponse])
 async def update_deliver_partner(

@@ -38,6 +38,16 @@ async def login_seller(
     return {"access_token": token, "type": "jwt"}
 
 
+# verify
+@router.get("/verify")
+async def verify_seller_email(
+    token: str,
+    service: SellerServiceDepends,
+) -> dict[str, str]:
+    await service.verify_email(token)
+    return {"detail": "email verified successfully"}
+
+
 # dashboard
 @router.get("/dashboard")
 async def get_dashboard(

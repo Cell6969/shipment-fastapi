@@ -1,4 +1,5 @@
 from typing import Generic, TypeVar
+from uuid import UUID
 from fastapi import BackgroundTasks, HTTPException, status
 from pydantic import EmailStr
 from sqlalchemy import select
@@ -9,46 +10,68 @@ from app.database.models import User
 from passlib.context import CryptContext
 
 from app.service.notification import NotificationService
-from app.utils import generate_access_token, generate_url_safe_token
+from app.utils import (
+    decode_url_safe_token,
+    generate_access_token,
+    generate_url_safe_token,
+)
 
 
 U = TypeVar("U", bound=User)
 hash_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-class UserService(Generic[U],BaseService[U]):
+class UserService(Generic[U], BaseService[U]):
     def __init__(self, model: type[U], session: AsyncSession, tasks: BackgroundTasks):
         self.model = model
         self.session = session
         self.notification_service = NotificationService(tasks=tasks)
 
-    async def _add_user(self, data: dict, router_prefix:str) -> U:
+    async def _add_user(self, data: dict, router_prefix: str) -> U:
         data["password"] = hash_context.hash(data["password"])
         user = self.model(**data)
 
         user = await self._add(user)
 
         # generate url safe token
-        token = generate_url_safe_token({
-            "email": user.email,
-            "id": user.id #type:ignore
-        })
+        token = generate_url_safe_token(
+            {
+                "email": user.email,
+                "id": str(user.id),  # type:ignore
+            }
+        )
 
         await self.notification_service.send_email_with_template(
             recipients=[user.email],
             subject="verify your account with fastship",
             context={
                 "username": user.name,
-                "verification_url": f"{app_settings.APP_DOMAIN}/{router_prefix}/verify?token={token}"
+                "verification_url": f"{app_settings.APP_DOMAIN}/{router_prefix}/verify?token={token}",
             },
-            template="mail_verified_email.html"
+            template_name="mail_verified_email.html",
         )
 
-        return user 
+        return user
+
+    async def verify_email(self, token: str):
+        token_data = decode_url_safe_token(token)
+        if not token_data:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="invalid token"
+            )
+
+        user = await self._get(UUID(token_data["id"]))
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
+            )
+
+        user.email_verified = True
+        await self._update(user)
 
     async def _get_by_email(self, email: str) -> U | None:
         return await self.session.scalar(
-            select(self.model).where(self.model.email == email) #type:ignore
+            select(self.model).where(self.model.email == email)  # type:ignore
         )
 
     async def _generate_token(self, email: str, password: str) -> str:
@@ -69,12 +92,12 @@ class UserService(Generic[U],BaseService[U]):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="email not verified",
             )
-        
+
         return generate_access_token(
-            data= {
+            data={
                 "user": {
                     "name": user.name,
-                    "id": str(user.id) #type:ignore
+                    "id": str(user.id),  # type:ignore
                 }
             }
         )
