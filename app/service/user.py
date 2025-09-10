@@ -1,3 +1,4 @@
+from datetime import timedelta
 from typing import Generic, TypeVar
 from uuid import UUID
 from fastapi import BackgroundTasks, HTTPException, status
@@ -34,7 +35,7 @@ class UserService(Generic[U], BaseService[U]):
         user = await self._add(user)
 
         # generate url safe token
-        token = generate_url_safe_token({"id": str(user.id)}) # type:ignore
+        token = generate_url_safe_token({"id": str(user.id)})  # type:ignore
 
         await self.notification_service.send_email_with_template(
             recipients=[user.email],
@@ -96,15 +97,17 @@ class UserService(Generic[U], BaseService[U]):
                 }
             }
         )
-    
-    async def send_password_link(self, email: EmailStr, router_prefix:str):
+
+    async def send_password_link(self, email: EmailStr, router_prefix: str):
         user = await self._get_by_email(email=email)
         if user is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
             )
-        
-        token = generate_url_safe_token({"id": str(user.id)}, salt="password-reset") # type:ignore
+
+        token = generate_url_safe_token(
+            {"id": str(user.id)}, salt="password-reset" # type:ignore
+        )  
 
         await self.notification_service.send_email_with_template(
             recipients=[user.email],
@@ -116,4 +119,21 @@ class UserService(Generic[U], BaseService[U]):
             template_name="mail_reset_password.html",
         )
 
-        
+    async def reset_password(self, token: str, password: str) -> bool:
+        token_data = decode_url_safe_token(
+            token,
+            salt="password-reset",
+            expiry=timedelta(days=1),
+        )
+
+        if not token_data:
+            return False
+
+        user = await self._get(UUID(token_data["id"]))
+        if user is None:
+            return False
+
+        user.password = hash_context.hash(password)
+        await self._update(user)
+
+        return True

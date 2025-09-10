@@ -1,6 +1,7 @@
 from typing import Annotated
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.security import OAuth2PasswordRequestForm
+from fastapi.templating import Jinja2Templates
 from pydantic import EmailStr
 
 from app.api.dependencies import (
@@ -9,11 +10,12 @@ from app.api.dependencies import (
     get_seller_access_token,
 )
 from app.api.schemas.seller import SellerCreate, SellerResponse
+from app.config import app_settings
 from app.database.models import Seller
 from app.database.redis import add_jti_to_blacklist
 from app.helper.api import ApiResponse
 from app.core.security import oauth2_scheme_seller
-from app.utils import decode_access_token
+from app.utils import TEMPLATE_DIR, decode_access_token
 
 
 router = APIRouter(prefix="/seller", tags=["seller"])
@@ -48,6 +50,7 @@ async def verify_seller_email(
     await service.verify_email(token)
     return {"detail": "email verified successfully"}
 
+
 # verify
 @router.get("/forgot-password")
 async def forgot_seller_password(
@@ -56,6 +59,40 @@ async def forgot_seller_password(
 ) -> dict[str, str]:
     await service.send_password_link(email, "seller")
     return {"detail": "password reset link sent successfully"}
+
+
+# form-reset
+@router.get("/reset-password")
+async def form_reset_seller_password(
+    request: Request,
+    token: str,
+    service: SellerServiceDepends,
+):
+    templates = Jinja2Templates(directory=TEMPLATE_DIR / "password")
+    return templates.TemplateResponse(
+        request=request,
+        name="reset.html",
+        context={
+            "reset_url": f"{app_settings.APP_DOMAIN}{router.prefix}/reset-password?token={token}",
+        },
+    )
+
+
+# reset
+@router.post("/reset-password")
+async def submit_reset_seller_password(
+    request: Request,
+    token: str,
+    password: Annotated[str, Form()],
+    service: SellerServiceDepends,
+):
+    res = await service.reset_password(token, password)
+
+    templates = Jinja2Templates(directory=TEMPLATE_DIR / "password")
+    return templates.TemplateResponse(
+        request=request,
+        name="reset_success.html" if res else "reset_failed.html",
+    )
 
 
 # dashboard
