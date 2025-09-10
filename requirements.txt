@@ -7,3 +7,4 @@ redis[hiredis]
 scalar_fastapi
 alembic
 fastapi-mail
+twilio

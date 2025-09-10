@@ -10,6 +10,7 @@ from itsdangerous import (
     SignatureExpired,
     URLSafeTimedSerializer,
 )
+import secrets
 
 # Directory
 APP_DIR = Path(__file__).resolve().parent
@@ -55,3 +56,6 @@ def decode_url_safe_token(token: str, expiry: timedelta | None = None, salt:str|
         )
     except (BadSignature, SignatureExpired):
         return None
+
+def generate_verification_code():
+    return secrets.randbelow(999_999) + 100_000

@@ -1,6 +1,7 @@
 from fastapi.background import BackgroundTasks
 from fastapi_mail import FastMail, ConnectionConfig, MessageSchema, MessageType
 from pydantic import EmailStr
+from twilio.rest import Client
 from app.config import notification_settings
 from app.utils import TEMPLATE_DIR
 
@@ -13,6 +14,10 @@ class NotificationService:
             )
         )
         self.tasks = tasks
+        self.twilio_client = Client(
+            notification_settings.TWILIO_SID,
+            notification_settings.TWILIO_AUTH_TOKEN,
+        )
 
     async def send_email(
         self,
@@ -46,4 +51,11 @@ class NotificationService:
                 subtype=MessageType.html,
             ),
             template_name=template_name,
+        )
+
+    async def send_sms(self, to: str, body: str):
+        await self.twilio_client.messages.create_async(
+            body=body,
+            from_=notification_settings.TWILIO_PHONE_NUMBER,
+            to=to,
         )

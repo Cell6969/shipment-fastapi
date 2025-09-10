@@ -1,9 +1,12 @@
+from random import randint
 from fastapi import BackgroundTasks
+from app.database.redis import add_shipment_verification_code
 from app.service.base import BaseService
 from app.database.models import Shipment, ShipmentEvent, ShipmentStatus
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.service.notification import NotificationService
+from app.utils import generate_verification_code
 
 
 class ShipmentEventService(BaseService[ShipmentEvent]):
@@ -76,6 +79,18 @@ class ShipmentEventService(BaseService[ShipmentEvent]):
             case ShipmentStatus.out_for_delivery:
                 subject="Your Order is Arriving Soon 🛵"
                 template_name = "mail_out_for_delivery.html"
+
+                code = generate_verification_code()
+                await add_shipment_verification_code(shipment.id, code)
+
+                if shipment.client_contact_phone:
+                    await self.notification_service.send_sms(
+                        to=str(shipment.client_contact_phone),
+                        body=f"Your order is arriving soon! Share the code {code} "
+                        "with your delivery to verify your order.",
+                    )
+                else:
+                    context["verification_code"] = code
                 
             case ShipmentStatus.delivered:
                 subject = "Your Order is Delivered ✅"
