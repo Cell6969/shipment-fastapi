@@ -79,6 +79,7 @@ class ShipmentEvent(SQLModel, table=True):
 class User(SQLModel):
     name: str
     email: EmailStr
+    email_verified: bool = Field(default=False)
     password: str = Field(exclude=True)
 
 

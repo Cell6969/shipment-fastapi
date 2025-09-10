@@ -41,6 +41,12 @@ class UserService(Generic[U],BaseService[U]):
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="invalid credentials",
             )
+
+        if not user.email_verified:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="email not verified",
+            )
         
         return generate_access_token(
             data= {
