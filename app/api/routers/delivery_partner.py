@@ -1,6 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import EmailStr
 
 from app.api.schemas.delivery_partner import (
     DeliveryPartnerCreate,
@@ -45,6 +46,15 @@ async def verify_partner(
 ) -> dict[str, str]:
     await service.verify_email(token)
     return {"detail": "email verified successfully"}
+
+### reset password partner
+@router.get("/forgot-password")
+async def forgot_partner_password(
+    email: EmailStr,
+    service: PartnerServiceDepends,
+) -> dict[str, str]:
+    await service.send_password_link(email, "partner")
+    return {"detail": "password reset link sent successfully"}
 
 
 ### update delivery partner

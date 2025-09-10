@@ -42,16 +42,16 @@ def decode_access_token(token: str) -> dict | None:
         return None
 
 
-def generate_url_safe_token(data: dict) -> str:
-    return _serializer.dumps(data)
+def generate_url_safe_token(data: dict, salt: str | None = None) -> str:
+    return _serializer.dumps(data, salt=salt)
 
 
-def decode_url_safe_token(token: str, expiry: timedelta | None = None) -> dict | None:
+def decode_url_safe_token(token: str, expiry: timedelta | None = None, salt:str|None = None) -> dict | None:
     try:
         return (
-            _serializer.loads(token, max_age=int(expiry.total_seconds()))
+            _serializer.loads(token, max_age=int(expiry.total_seconds()), salt=salt)
             if expiry
-            else _serializer.loads(token)
+            else _serializer.loads(token, salt=salt)
         )
     except (BadSignature, SignatureExpired):
         return None

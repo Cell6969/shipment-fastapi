@@ -34,12 +34,7 @@ class UserService(Generic[U], BaseService[U]):
         user = await self._add(user)
 
         # generate url safe token
-        token = generate_url_safe_token(
-            {
-                "email": user.email,
-                "id": str(user.id),  # type:ignore
-            }
-        )
+        token = generate_url_safe_token({"id": str(user.id)}) # type:ignore
 
         await self.notification_service.send_email_with_template(
             recipients=[user.email],
@@ -101,3 +96,24 @@ class UserService(Generic[U], BaseService[U]):
                 }
             }
         )
+    
+    async def send_password_link(self, email: EmailStr, router_prefix:str):
+        user = await self._get_by_email(email=email)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
+            )
+        
+        token = generate_url_safe_token({"id": str(user.id)}, salt="password-reset") # type:ignore
+
+        await self.notification_service.send_email_with_template(
+            recipients=[user.email],
+            subject="reset your password from fastship",
+            context={
+                "username": user.name,
+                "reset_password_url": f"{app_settings.APP_DOMAIN}/{router_prefix}/reset-password?token={token}",
+            },
+            template_name="mail_reset_password.html",
+        )
+
+        

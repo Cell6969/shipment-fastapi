@@ -1,6 +1,7 @@
 from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
+from pydantic import EmailStr
 
 from app.api.dependencies import (
     SellerServiceDepends,
@@ -46,6 +47,15 @@ async def verify_seller_email(
 ) -> dict[str, str]:
     await service.verify_email(token)
     return {"detail": "email verified successfully"}
+
+# verify
+@router.get("/forgot-password")
+async def forgot_seller_password(
+    email: EmailStr,
+    service: SellerServiceDepends,
+) -> dict[str, str]:
+    await service.send_password_link(email, "seller")
+    return {"detail": "password reset link sent successfully"}
 
 
 # dashboard
