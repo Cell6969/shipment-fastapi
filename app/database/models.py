@@ -8,6 +8,27 @@ from sqlalchemy import ARRAY, INTEGER
 from collections.abc import Sequence
 
 
+# MANY TO MANY
+class ShipmentTag(SQLModel, table=True):
+    __tablename__ = "shipment_tag"  # type:ignore
+
+    shipment_id: UUID = Field(foreign_key="shipment.id", primary_key=True)
+    tag_id: UUID = Field(foreign_key="tag.id", primary_key=True)
+
+
+class TagName(str, Enum):
+    EXPRESS = "express"
+    STANDARD = "standard"
+    FRAGILE = "fragile"
+    HEAVY = "heavy"
+    INTERNATIONAL = "international"
+    DOMESTIC = "domestic"
+    TEMPERATURE_CONTROLLED = "temperature_controlled"
+    GIFT = "gift"
+    RETURN = "return"
+    DOCUMENTS = "documents"
+
+
 class ShipmentStatus(str, Enum):
     placed = "placed"
     in_transit = "in_transit"
@@ -60,6 +81,13 @@ class Shipment(SQLModel, table=True):
     # Reviews
     review: "Review" = Relationship(
         back_populates="shipment", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+    # Tags
+    tags: list["Tag"] = Relationship(
+        back_populates="shipments",
+        link_model=ShipmentTag,
+        sa_relationship_kwargs={"lazy": "selectin"}
     )
 
 
@@ -158,4 +186,29 @@ class Review(SQLModel, table=True):
     comment: str | None = Field(default=None)
 
     shipment_id: UUID = Field(foreign_key="shipment.id")
-    shipment: Shipment = Relationship(back_populates="review", sa_relationship_kwargs={"lazy": "selectin"})
+    shipment: Shipment = Relationship(
+        back_populates="review", sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+
+class Tag(SQLModel, table=True):
+    __tablename__ = "tag"  # type:ignore
+
+    id: UUID = Field(sa_column=Column(postgresql.UUID, default=uuid4, primary_key=True))
+    created_at: datetime = Field(
+        sa_column=Column(
+            postgresql.TIMESTAMP,
+            default=datetime.now,
+        )
+    )
+
+    name: TagName
+    instruction:str
+
+    shipments: list[Shipment] = Relationship(
+        back_populates="tags",
+        link_model=ShipmentTag,
+        sa_relationship_kwargs={"lazy": "selectin"}
+    )
+
+
