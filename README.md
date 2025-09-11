@@ -51,3 +51,24 @@ alembic revision --autogenerate -m <message>
 ```sh
 pip freeze > requirements.txt
 ```
+
+## Worker
+```sh
+celery -A app.worker.tasks worker -L info -P solo (for development)
+celery -A app.worker.tasks worker -L info -P gevent (for production)
+```
+
+for monitoring, run first
+```sh
+celery -A app.worker.tasks worker -E
+```
+
+then run flower
+```sh
+celery -A app.worker.tasks flower
+```
+
+for set credentials
+```sh
+celery -A app.worker.tasks flower --basic-auth=<username>:<password>
+```

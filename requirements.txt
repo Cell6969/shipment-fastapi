@@ -10,3 +10,4 @@ fastapi-mail
 twilio
 celery
 asgiref
+flower
