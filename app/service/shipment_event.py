@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.service.notification import NotificationService
 from app.utils import generate_url_safe_token, generate_verification_code
+from app.worker.tasks import send_email_with_template
 
 
 class ShipmentEventService(BaseService[ShipmentEvent]):
@@ -107,7 +108,16 @@ class ShipmentEventService(BaseService[ShipmentEvent]):
                 subject = "Your Order is Cancelled ❌"
                 template_name = "mail_cancelled.html"
         
-        await self.notification_service.send_email_with_template(
+        ### Use background task
+        # await self.notification_service.send_email_with_template(
+        #     recipients=[shipment.client_contact_email],
+        #     subject=subject,
+        #     context=context,
+        #     template_name=template_name,
+        # )
+
+        ### Use Celery
+        send_email_with_template.delay(
             recipients=[shipment.client_contact_email],
             subject=subject,
             context=context,

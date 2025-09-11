@@ -25,6 +25,9 @@ class DatabaseSettings(BaseSettings):
     def get_connection_string(self):
         return f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}@{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
 
+    def get_redis_url(self, db: int):
+        return f"redis://{self.REDIS_HOST}:{self.REDIS_PORT}/{db}"
+
 
 class SecuritySettings(BaseSettings):
     JWT_SECRET: str

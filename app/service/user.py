@@ -16,6 +16,7 @@ from app.utils import (
     generate_access_token,
     generate_url_safe_token,
 )
+from app.worker.tasks import send_email_with_template
 
 
 U = TypeVar("U", bound=User)
@@ -37,7 +38,19 @@ class UserService(Generic[U], BaseService[U]):
         # generate url safe token
         token = generate_url_safe_token({"id": str(user.id)})  # type:ignore
 
-        await self.notification_service.send_email_with_template(
+        ### Use from background task
+        # await self.notification_service.send_email_with_template(
+        #     recipients=[user.email],
+        #     subject="verify your account with fastship",
+        #     context={
+        #         "username": user.name,
+        #         "verification_url": f"{app_settings.APP_DOMAIN}/{router_prefix}/verify?token={token}",
+        #     },
+        #     template_name="mail_verified_email.html",
+        # )
+
+        ### Use Celery
+        send_email_with_template.delay(
             recipients=[user.email],
             subject="verify your account with fastship",
             context={
@@ -109,7 +122,19 @@ class UserService(Generic[U], BaseService[U]):
             {"id": str(user.id)}, salt="password-reset" # type:ignore
         )  
 
-        await self.notification_service.send_email_with_template(
+        ### Use from background task
+        # await self.notification_service.send_email_with_template(
+        #     recipients=[user.email],
+        #     subject="reset your password from fastship",
+        #     context={
+        #         "username": user.name,
+        #         "reset_password_url": f"{app_settings.APP_DOMAIN}/{router_prefix}/reset-password?token={token}",
+        #     },
+        #     template_name="mail_reset_password.html",
+        # )
+
+        ### Use Celery
+        send_email_with_template.delay(
             recipients=[user.email],
             subject="reset your password from fastship",
             context={
