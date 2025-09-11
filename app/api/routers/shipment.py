@@ -1,5 +1,6 @@
+from typing import Annotated
 from uuid import UUID
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Form, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -11,8 +12,10 @@ from app.api.dependencies import (
 from app.api.schemas.shipment import (
     ShipmentCreate,
     ShipmentResponse,
+    ShipmentReview,
     ShipmentUpdatePartial,
 )
+from app.config import app_settings
 from app.utils import TEMPLATE_DIR
 
 router = APIRouter(prefix="/shipment", tags=["shipment"])
@@ -25,6 +28,14 @@ async def get_shipment(_: SellerGuard, service: ShipmentServiceDepends):
     return await service.list()
 
 
+@router.post("/", response_model=ShipmentResponse)
+async def submit_shipment(
+    body: ShipmentCreate, service: ShipmentServiceDepends, seller_guard: SellerGuard
+):
+    return await service.add(body, seller_guard)
+
+
+# track shipment
 @router.get("/tracking")
 async def get_shipment_tracking(
     request: Request, id: str, service: ShipmentServiceDepends
@@ -44,13 +55,6 @@ async def get_shipment_tracking(
     )
 
 
-@router.post("/", response_model=ShipmentResponse)
-async def submit_shipment(
-    body: ShipmentCreate, service: ShipmentServiceDepends, seller_guard: SellerGuard
-):
-    return await service.add(body, seller_guard)
-
-
 # cancel
 @router.get("/cancel", response_model=ShipmentResponse)
 async def cancel_shipment(
@@ -59,6 +63,28 @@ async def cancel_shipment(
     seller: SellerGuard,
 ):
     return await service.cancel(UUID(id), seller)
+
+
+# review
+@router.get("/review")
+async def get_review(request: Request, token: str):
+    context = {
+        "review_url": f"{app_settings.APP_DOMAIN}/shipment/review?token={token}",
+    }
+    return templates.TemplateResponse(
+        request=request, name="review.html", context=context
+    )
+
+
+@router.post("/review")
+async def submit_review(
+    token: str,
+    rating: Annotated[int, Form(ge=1, le=5)],
+    comment: Annotated[str | None, Form(max_length=255)],
+    service: ShipmentServiceDepends,
+):
+    await service.rate(token, rating, comment)
+    return {"detail": "Review Submitted"}
 
 
 @router.get("/{id}", response_model=ShipmentResponse)

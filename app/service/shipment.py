@@ -4,10 +4,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 from app.api.schemas.shipment import (
     ShipmentCreate,
+    ShipmentReview,
     ShipmentUpdate,
     ShipmentUpdatePartial,
 )
-from app.database.models import DeliveryPartner, Seller, Shipment
+from app.database.models import DeliveryPartner, Review, Seller, Shipment
 from app.database.models import ShipmentStatus
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
@@ -17,6 +18,7 @@ from app.helper.datetimeconversion import to_naive_utc
 from app.service.base import BaseService
 from app.service.delivery_partner import DeliverPartnerService
 from app.service.shipment_event import ShipmentEventService
+from app.utils import decode_url_safe_token
 
 
 class ShipmentService(BaseService[Shipment]):
@@ -149,3 +151,25 @@ class ShipmentService(BaseService[Shipment]):
         shipment.timeline.append(event)
 
         return shipment
+
+    async def rate(self, token: str, rating: int, comment: str | None = None):
+        token_data = decode_url_safe_token(
+            token=token, expiry=timedelta(days=1), salt="shipment-review"
+        )
+        if not token_data:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token"
+            )
+
+        shipment = await self.get(UUID(token_data["id"]))
+
+        review_model = Review(
+            rating=rating,
+            comment=comment if comment else None,
+            shipment_id=shipment.id,
+        )
+
+        self.session.add(review_model)
+        await self.session.commit()
+
+        return review_model
