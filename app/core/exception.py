@@ -1,4 +1,9 @@
 from fastapi import FastAPI, HTTPException, Request, Response, status
+from fastapi.exceptions import RequestValidationError, ResponseValidationError
+from fastapi.responses import JSONResponse
+from pydantic import ValidationError
+from rich import print
+from rich.panel import Panel
 
 class FastShipError(Exception):
     """Base Exception for all exception is fastship api"""
@@ -33,9 +38,7 @@ class DeliveryPartnerCapacityExceeded(FastShipError):
 
 def _get_handler(status:int, detail:str):
     def handler(request: Request, exception: Exception) -> Response:
-        from rich import print, panel
-
-        print(panel.Panel(f"Handled: {exception.__class__.__name__}"))
+        print(Panel(f"Handled: {exception.__class__.__name__}"))
         raise HTTPException(
             status_code=status,
             detail=detail
@@ -47,4 +50,30 @@ def add_exception_handlers(app: FastAPI):
         app.add_exception_handler(
             subclass,
             _get_handler(subclass.status_code, subclass.__doc__) # type: ignore
+        )
+
+    # for internal server error
+    @app.exception_handler(status.HTTP_500_INTERNAL_SERVER_ERROR)
+    def internal_server_error_handler(request: Request, exception: Exception) -> Response:
+        print(Panel(f"Handled: {exception}"))
+        return JSONResponse(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            content={"detail": "Internal Server Error"}
+        )
+
+    # for validation error from pydantic
+    @app.exception_handler(ResponseValidationError)
+    def validation_error_response_handler(request: Request, exception: Exception) -> Response:
+        print(Panel(f"Handled: {exception}"))
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": "Validation Error"}
+        )
+
+    @app.exception_handler(RequestValidationError)
+    def validation_error_request_handler(request: Request, exception: Exception) -> Response:
+        print(Panel(f"Handled: {exception}"))
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": "Validation Error"}
         )
