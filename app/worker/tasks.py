@@ -73,3 +73,8 @@ def send_sms(to: str, body: str):
         from_=notification_settings.TWILIO_PHONE_NUMBER,
         to=to,
     )
+
+@app.task
+def add_log(log:str) -> None:
+    with open("file.log", 'a') as file:
+        file.write(f"{log}\n")
