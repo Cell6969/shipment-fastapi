@@ -11,6 +11,7 @@ from app.api.dependencies import (
 )
 from app.api.schemas.seller import SellerCreate, SellerResponse
 from app.config import app_settings
+from app.core.exception import InvalidToken
 from app.database.models import Seller
 from app.database.redis import add_jti_to_blacklist
 from app.helper.api import ApiResponse
@@ -102,9 +103,7 @@ async def get_dashboard(
 ):
     data = decode_access_token(token)
     if data is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid Token"
-        )
+        raise InvalidToken()
 
     seller = await session.get(Seller, data["user"]["id"])
 

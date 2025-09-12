@@ -5,6 +5,7 @@ from fastapi import BackgroundTasks, HTTPException, status
 from pydantic import EmailStr
 from sqlalchemy import select
 from app.config import app_settings
+from app.core.exception import BadCredentials, EntityNotFound, InvalidToken
 from app.service.base import BaseService
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database.models import User
@@ -65,15 +66,11 @@ class UserService(Generic[U], BaseService[U]):
     async def verify_email(self, token: str):
         token_data = decode_url_safe_token(token)
         if not token_data:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST, detail="invalid token"
-            )
+            raise InvalidToken()
 
         user = await self._get(UUID(token_data["id"]))
         if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
-            )
+            raise EntityNotFound()
 
         user.email_verified = True
         await self._update(user)
@@ -91,16 +88,10 @@ class UserService(Generic[U], BaseService[U]):
             password,
             user.password,
         ):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="invalid credentials",
-            )
+            raise BadCredentials()
 
         if not user.email_verified:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="email not verified",
-            )
+            raise BadCredentials()
 
         return generate_access_token(
             data={
@@ -114,9 +105,7 @@ class UserService(Generic[U], BaseService[U]):
     async def send_password_link(self, email: EmailStr, router_prefix: str):
         user = await self._get_by_email(email=email)
         if user is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND, detail="user not found"
-            )
+            raise EntityNotFound()
 
         token = generate_url_safe_token(
             {"id": str(user.id)}, salt="password-reset" # type:ignore

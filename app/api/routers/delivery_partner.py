@@ -13,6 +13,7 @@ from app.api.dependencies import (
     get_partner_access_token,
 )
 from app.api.schemas.delivery_partner import DeliveryPartnerResponse
+from app.core.exception import BadRequest
 from app.database.redis import add_jti_to_blacklist
 from app.helper.api import ApiResponse
 
@@ -68,9 +69,7 @@ async def update_deliver_partner(
     update = request.model_dump(exclude_none=True)
 
     if not update:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="no data provided"
-        )
+        raise BadRequest()
 
     result = await service.update(partner.sqlmodel_update(update))
 

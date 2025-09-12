@@ -1,3 +1,4 @@
+from app.core.exception import BadCredentials, InvalidToken
 from app.core.security import oauth2_scheme_seller, oauth2_scheme_partner
 from app.database.models import DeliveryPartner, Seller
 from app.database.redis import is_jti_blacklisted
@@ -38,9 +39,7 @@ def get_delivery_partner_service(session: SessionDepends, tasks: BackgroundTasks
 async def _get_access_token(token: str):
     data = decode_access_token(token)
     if data is None or await is_jti_blacklisted(data["jti"]):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired token"
-        )
+        raise InvalidToken()
     return data
 
 
@@ -63,9 +62,7 @@ async def get_current_seller(
 ) -> Seller:
     seller = await session.get(Seller, UUID(token_data["user"]["id"]))
     if seller is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid User"
-        )
+        raise BadCredentials()
     return seller
 
 
@@ -75,9 +72,7 @@ async def get_current_partner(
 ) -> DeliveryPartner:
     partner = await session.get(DeliveryPartner, UUID(token_data["user"]["id"]))
     if partner is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid User"
-        )
+        raise BadCredentials()
     return partner
 
 

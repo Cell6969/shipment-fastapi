@@ -2,6 +2,7 @@ from typing import Sequence
 
 from fastapi import HTTPException, status
 from sqlmodel import select, any_
+from app.core.exception import DeliveryPartnerNotAvailable
 from app.service.user import UserService
 from app.database.models import DeliveryPartner, Shipment
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -43,7 +44,4 @@ class DeliverPartnerService(UserService[DeliveryPartner]):
                 partner.shipments.append(shipment)
                 return partner
 
-        raise HTTPException(
-            status_code=status.HTTP_406_NOT_ACCEPTABLE,
-            detail="No available partner found",
-        )
+        raise DeliveryPartnerNotAvailable()
