@@ -8,7 +8,7 @@ from app.api.schemas.shipment import (
     ShipmentUpdate,
     ShipmentUpdatePartial,
 )
-from app.database.models import DeliveryPartner, Review, Seller, Shipment
+from app.database.models import DeliveryPartner, Review, Seller, Shipment, TagName
 from app.database.models import ShipmentStatus
 from datetime import datetime, timedelta
 from fastapi import HTTPException, status
@@ -173,3 +173,25 @@ class ShipmentService(BaseService[Shipment]):
         await self.session.commit()
 
         return review_model
+
+    async def add_tag(self, id: UUID, tag_name: TagName):
+        shipment = await self.get(id)
+        tag = await tag_name.tag(self.session)
+        if tag is None:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="tag not found")
+
+        shipment.tags.append(tag)
+        return await self._update(shipment)
+
+    async def remove_tag(self, id: UUID, tag_name: TagName):
+        shipment = await self.get(id)
+
+        try:
+            tag = await tag_name.tag(self.session)
+            if tag is None:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="tag not found")
+            shipment.tags.remove(tag)
+            return await self._update(shipment)
+
+        except Exception:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="tag not found in shipment")

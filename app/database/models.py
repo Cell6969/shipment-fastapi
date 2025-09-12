@@ -1,6 +1,7 @@
 from datetime import datetime
 from pydantic import EmailStr
-from sqlmodel import Column, Field, Relationship, SQLModel, col
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel import Column, Field, Relationship, SQLModel, col, select
 from enum import Enum
 from uuid import uuid4, UUID
 from sqlalchemy.dialects import postgresql
@@ -27,6 +28,9 @@ class TagName(str, Enum):
     GIFT = "gift"
     RETURN = "return"
     DOCUMENTS = "documents"
+
+    async def tag(self, session: AsyncSession):
+        return await session.scalar(select(Tag).where(Tag.name == self.value))
 
 
 class ShipmentStatus(str, Enum):
@@ -87,7 +91,7 @@ class Shipment(SQLModel, table=True):
     tags: list["Tag"] = Relationship(
         back_populates="shipments",
         link_model=ShipmentTag,
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
 
 
@@ -203,12 +207,10 @@ class Tag(SQLModel, table=True):
     )
 
     name: TagName
-    instruction:str
+    instruction: str
 
     shipments: list[Shipment] = Relationship(
         back_populates="tags",
         link_model=ShipmentTag,
-        sa_relationship_kwargs={"lazy": "selectin"}
+        sa_relationship_kwargs={"lazy": "selectin"},
     )
-
-

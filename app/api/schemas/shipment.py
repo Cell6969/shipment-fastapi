@@ -1,10 +1,15 @@
 from datetime import datetime
 from uuid import UUID
+from fastapi.openapi.models import Tag
 from pydantic import BaseModel, EmailStr, Field
 
 from app.api.schemas.seller import SellerResponse
-from app.database.models import ShipmentEvent, ShipmentStatus
+from app.database.models import ShipmentEvent, ShipmentStatus, TagName
 
+
+class TagResponse(BaseModel):
+    name: TagName
+    instruction: str
 
 class BaseShipment(BaseModel):
     content: str = Field(max_length=100)
@@ -36,6 +41,7 @@ class ShipmentResponse(BaseShipment):
     estimated_delivery: datetime
     client_contact_email: EmailStr
     client_contact_phone: str | None = Field(default=None)
+    tags: list[TagResponse]
 
 
 class ShipmentReview(BaseModel):

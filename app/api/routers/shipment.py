@@ -16,6 +16,8 @@ from app.api.schemas.shipment import (
     ShipmentUpdatePartial,
 )
 from app.config import app_settings
+from app.database.models import TagName
+from app.helper.api import ApiResponse
 from app.utils import TEMPLATE_DIR
 
 router = APIRouter(prefix="/shipment", tags=["shipment"])
@@ -85,6 +87,25 @@ async def submit_review(
 ):
     await service.rate(token, rating, comment)
     return {"detail": "Review Submitted"}
+
+# tag
+@router.get("/tag", response_model=ApiResponse[ShipmentResponse])
+async def add_tag(
+    id: str,
+    tag: TagName,
+    service: ShipmentServiceDepends
+):
+    shipment = await service.add_tag(UUID(id), tag)
+    return ApiResponse.success("tag added successfully", shipment)
+
+@router.delete("/tag", response_model=ApiResponse[ShipmentResponse])
+async def remove_tag(
+    id: str,
+    tag: TagName,
+    service: ShipmentServiceDepends
+):
+    shipment = await service.remove_tag(UUID(id), tag)
+    return ApiResponse.success("tag removed successfully", shipment)
 
 
 @router.get("/{id}", response_model=ShipmentResponse)
