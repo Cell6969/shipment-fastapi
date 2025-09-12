@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 from app.api.dependencies import (
     PartnerGuard,
     SellerGuard,
+    SessionDepends,
     ShipmentServiceDepends,
 )
 from app.api.schemas.shipment import (
@@ -106,6 +107,14 @@ async def remove_tag(
 ):
     shipment = await service.remove_tag(UUID(id), tag)
     return ApiResponse.success("tag removed successfully", shipment)
+
+@router.get("/tagged", response_model=ApiResponse[list[ShipmentResponse]])
+async def get_tagged_shipments(
+    tag_name: TagName,
+    session: SessionDepends,
+):
+    tag = await tag_name.tag(session)
+    return ApiResponse.success("tagged shipments", tag.shipments if tag else [])
 
 
 @router.get("/{id}", response_model=ShipmentResponse)
